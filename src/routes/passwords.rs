@@ -60,6 +60,9 @@ pub async fn create_password(
 
     let new_password = NewPassword {
         name: password_form.name.clone(),
+        username: password_form.username.clone(),
+        website: password_form.website.clone(),
+        note: password_form.note.clone(),
         user_id: user.id,
         value: Some(cipher_text),
         nonce: Some(nonce.to_vec()),
@@ -204,5 +207,7 @@ pub async fn get_password_by_name(
     Ok(HttpResponse::Ok().json(PasswordResponse {
         name: password.name,
         value: plain_text,
+        website: password.website,
+        note: password.note,
     }))
 }

@@ -23,4 +23,6 @@ pub struct ErrorResponse {
 pub struct PasswordResponse {
     pub name: String,
     pub value: String,
+    pub website: Option<String>,
+    pub note: Option<String>,
 }

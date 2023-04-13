@@ -4,9 +4,12 @@ diesel::table! {
     passwords (id) {
         id -> Varchar,
         name -> Varchar,
-        nonce -> Bytea,
+        username -> Varchar,
         value -> Bytea,
+        website -> Nullable<Varchar>,
+        note -> Nullable<Varchar>,
         key -> Bytea,
+        nonce -> Bytea,
         user_id -> Varchar,
     }
 }
