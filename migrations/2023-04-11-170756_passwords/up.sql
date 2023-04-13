@@ -9,5 +9,7 @@ CREATE TABLE passwords (
   key BYTEA NOT NULL,
   nonce BYTEA NOT NULL,
   user_id VARCHAR REFERENCES users(id) NOT NULL,
+  created_at VARCHAR DEFAULT NOW(),
+  updated_at VARCHAR,
   UNIQUE (name, user_id)
 )

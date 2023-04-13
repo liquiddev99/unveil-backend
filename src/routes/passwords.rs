@@ -81,6 +81,7 @@ pub async fn create_password(
 
         // Error handling
         if let Err(error) = result {
+            println!("{:?}", error);
             if let DbError::DatabaseError(kind, _) = error {
                 if let DatabaseErrorKind::UniqueViolation = kind {
                     return Err(ErrorResponse {

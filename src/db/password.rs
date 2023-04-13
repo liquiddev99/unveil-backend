@@ -38,4 +38,6 @@ pub struct Password {
     pub key: Vec<u8>,
     pub nonce: Vec<u8>,
     pub user_id: String,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
 }

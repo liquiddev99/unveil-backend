@@ -11,6 +11,8 @@ diesel::table! {
         key -> Bytea,
         nonce -> Bytea,
         user_id -> Varchar,
+        created_at -> Nullable<Varchar>,
+        updated_at -> Nullable<Varchar>,
     }
 }
 
