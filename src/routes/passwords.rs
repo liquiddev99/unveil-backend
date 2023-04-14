@@ -19,10 +19,13 @@ use std::env;
 
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
-use crate::db::password::{NewPassword, Password, PasswordForm};
 use crate::db::schema::passwords::dsl;
 use crate::db::user::UserClaim;
 use crate::types::response::{ErrorCode, ErrorResponse, PasswordResponse};
+use crate::{
+    db::password::{NewPassword, Password, PasswordForm},
+    types::password::ReturnPassword,
+};
 
 #[allow(clippy::collapsible_match)]
 #[post("/passwords/create")]
@@ -149,7 +152,20 @@ pub async fn get_passwords_by_user_id(
     }
 
     let passwords = result.unwrap();
-    Ok(HttpResponse::Ok().json(passwords))
+    let return_passwords: Vec<ReturnPassword> = passwords
+        .iter()
+        .map(|password| ReturnPassword {
+            id: password.id.clone(),
+            name: password.name.clone(),
+            username: password.username.clone(),
+            website: password.website.clone(),
+            note: password.note.clone(),
+            created_at: password.created_at.clone(),
+            updated_at: password.updated_at.clone(),
+        })
+        .collect();
+
+    Ok(HttpResponse::Ok().json(return_passwords))
 }
 
 #[get("/passwords/name/{name}")]
