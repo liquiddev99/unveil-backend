@@ -23,7 +23,7 @@ use crate::db::schema::passwords::dsl;
 use crate::db::user::UserClaim;
 use crate::types::response::{ErrorCode, ErrorResponse, PasswordResponse};
 use crate::{
-    db::password::{NewPassword, Password, PasswordForm},
+    db::password::{NewPassword, Password, PasswordForm, UpdatePasswordForm},
     types::password::ReturnPassword,
 };
 
@@ -84,7 +84,6 @@ pub async fn create_password(
 
         // Error handling
         if let Err(error) = result {
-            println!("{:?}", error);
             if let DbError::DatabaseError(kind, _) = error {
                 if let DatabaseErrorKind::UniqueViolation = kind {
                     return Err(ErrorResponse {
@@ -227,4 +226,89 @@ pub async fn get_password_by_name(
         website: password.website,
         note: password.note,
     }))
+}
+
+#[allow(clippy::collapsible_match)]
+#[allow(clippy::question_mark)]
+#[put("/passwords/name/{name}")]
+pub async fn update_password(
+    req: HttpRequest,
+    db_pool: web::Data<DbPool>,
+    name: web::Path<String>,
+    password_form: web::Json<UpdatePasswordForm>,
+) -> Result<HttpResponse, Error> {
+    let user_session = req
+        .cookie("user_session")
+        .ok_or_else(|| ErrorBadRequest("User not logged in"))?;
+    dotenv().ok();
+
+    let jwt_key = env::var("JWT_SECRET")
+        .map_err(|_| ErrorInternalServerError("Internal Server Error"))
+        .unwrap();
+    let user = decode::<UserClaim>(
+        user_session.value(),
+        &DecodingKey::from_secret(jwt_key.as_ref()),
+        &Validation::new(Algorithm::HS256),
+    )
+    .map_err(|_| ErrorForbidden("Validation failed"))?
+    .claims;
+
+    let result = web::block(move || {
+        let mut conn = db_pool
+            .get()
+            .expect("Failed to get a connection from the pool");
+
+        let password = diesel::update(
+            dsl::passwords
+                .filter(dsl::name.eq(name.clone()))
+                .filter(dsl::user_id.eq(user.id.clone())),
+        )
+        .set((
+            dsl::name.eq(password_form.name.to_owned()),
+            dsl::username.eq(password_form.username.to_owned()),
+            dsl::website.eq(password_form.website.to_owned()),
+            dsl::note.eq(password_form.note.to_owned()),
+        ))
+        .get_result::<Password>(&mut conn);
+
+        if password.is_err() {
+            return password;
+        }
+
+        if let Some(value) = &password_form.value {
+            let key_bytes = &password.as_ref().unwrap().key;
+            let nonce_bytes = &password.as_ref().unwrap().nonce;
+            let key = GenericArray::from_slice(key_bytes);
+            let nonce = Nonce::from_slice(nonce_bytes);
+
+            let cipher = Aes128Gcm::new(key);
+
+            let cipher_text = cipher
+                .encrypt(nonce, value.as_ref())
+                .expect("Failed to encrypt");
+
+            diesel::update(
+                dsl::passwords
+                    .filter(dsl::name.eq(name.into_inner()))
+                    .filter(dsl::user_id.eq(user.id)),
+            )
+            .set(dsl::value.eq(cipher_text))
+            .get_result::<Password>(&mut conn)
+        } else {
+            password
+        }
+    })
+    .await?;
+
+    // Error handling
+    if let Err(error) = result {
+        if let DbError::DatabaseError(kind, _) = error {
+            if let DatabaseErrorKind::UniqueViolation = kind {
+                return Err(ErrorBadRequest("That name already exists"));
+            }
+        }
+        return Err(ErrorInternalServerError("Internal Server Error"));
+    }
+
+    Ok(HttpResponse::Ok().json("Password Updated"))
 }

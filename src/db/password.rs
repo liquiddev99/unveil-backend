@@ -12,6 +12,15 @@ pub struct PasswordForm {
     pub note: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UpdatePasswordForm {
+    pub name: String,
+    pub username: String,
+    pub value: Option<String>,
+    pub website: Option<String>,
+    pub note: Option<String>,
+}
+
 #[derive(Insertable, Queryable, Serialize, Deserialize, Debug)]
 #[diesel(table_name = passwords)]
 pub struct NewPassword {
@@ -25,7 +34,7 @@ pub struct NewPassword {
     pub user_id: String,
 }
 
-#[derive(Serialize, Deserialize, Queryable, Associations)]
+#[derive(Serialize, Deserialize, Queryable, Associations, Debug)]
 #[diesel(belongs_to(User))]
 #[diesel(table_name = passwords)]
 pub struct Password {

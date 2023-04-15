@@ -11,7 +11,9 @@ mod db;
 mod routes;
 mod types;
 
-use routes::passwords::{create_password, get_password_by_name, get_passwords_by_user_id};
+use routes::passwords::{
+    create_password, get_password_by_name, get_passwords_by_user_id, update_password,
+};
 use routes::users::{get_users, login, logout, signup};
 
 #[actix_web::main]
@@ -42,6 +44,7 @@ async fn main() -> std::io::Result<()> {
             .service(create_password)
             .service(get_passwords_by_user_id)
             .service(get_password_by_name)
+            .service(update_password)
     })
     .bind(("127.0.0.1", 8080))?
     .run()
