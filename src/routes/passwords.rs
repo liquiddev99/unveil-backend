@@ -289,8 +289,8 @@ pub async fn update_password(
 
             diesel::update(
                 dsl::passwords
-                    .filter(dsl::name.eq(name.into_inner()))
-                    .filter(dsl::user_id.eq(user.id)),
+                    .filter(dsl::user_id.eq(user.id))
+                    .filter(dsl::name.eq(name.into_inner())),
             )
             .set(dsl::value.eq(cipher_text))
             .get_result::<Password>(&mut conn)
@@ -311,4 +311,45 @@ pub async fn update_password(
     }
 
     Ok(HttpResponse::Ok().json("Password Updated"))
+}
+
+#[delete("/passwords/delete/{name}")]
+pub async fn delete_password(
+    req: HttpRequest,
+    db_pool: web::Data<DbPool>,
+    name: web::Path<String>,
+) -> Result<HttpResponse, Error> {
+    let user_session = req
+        .cookie("user_session")
+        .ok_or_else(|| ErrorBadRequest("User not logged in"))?;
+    dotenv().ok();
+
+    let jwt_key = env::var("JWT_SECRET")
+        .map_err(|_| ErrorInternalServerError("Internal Server Error"))
+        .unwrap();
+    let user = decode::<UserClaim>(
+        user_session.value(),
+        &DecodingKey::from_secret(jwt_key.as_ref()),
+        &Validation::new(Algorithm::HS256),
+    )
+    .map_err(|_| ErrorForbidden("Validation failed"))?
+    .claims;
+
+    let count = web::block(move || {
+        let mut conn = db_pool.get().expect("Failed to connect to the database");
+        diesel::delete(
+            dsl::passwords
+                .filter(dsl::user_id.eq(user.id))
+                .filter(dsl::name.eq(name.to_owned())),
+        )
+        .execute(&mut conn)
+    })
+    .await?
+    .map_err(ErrorInternalServerError)?;
+
+    if count == 0 {
+        Err(ErrorNotFound("Password not exist"))
+    } else {
+        Ok(HttpResponse::Ok().body("Deleted password"))
+    }
 }
