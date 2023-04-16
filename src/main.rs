@@ -12,8 +12,8 @@ mod routes;
 mod types;
 
 use routes::passwords::{
-    create_password, delete_password, get_password_by_name, get_passwords_by_user_id,
-    update_password,
+    create_password, delete_password, get_password_by_id, get_password_by_name,
+    get_passwords_by_user_id, update_password,
 };
 use routes::users::{get_users, login, logout, signup};
 
@@ -45,6 +45,7 @@ async fn main() -> std::io::Result<()> {
             .service(create_password)
             .service(get_passwords_by_user_id)
             .service(get_password_by_name)
+            .service(get_password_by_id)
             .service(update_password)
             .service(delete_password)
     })

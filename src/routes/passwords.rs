@@ -221,6 +221,69 @@ pub async fn get_password_by_name(
     let plain_text = String::from_utf8(decoded).unwrap();
 
     Ok(HttpResponse::Ok().json(PasswordResponse {
+        id: password.id,
+        name: password.name,
+        value: plain_text,
+        website: password.website,
+        note: password.note,
+    }))
+}
+
+#[get("/passwords/{id}")]
+pub async fn get_password_by_id(
+    req: HttpRequest,
+    db_pool: web::Data<DbPool>,
+    id: web::Path<String>,
+) -> Result<HttpResponse, Error> {
+    let user_session = req
+        .cookie("user_session")
+        .ok_or_else(|| ErrorBadRequest("User not logged in"))?;
+    dotenv().ok();
+
+    let jwt_key = env::var("JWT_SECRET").expect("JWT must be set");
+    let user = decode::<UserClaim>(
+        user_session.value(),
+        &DecodingKey::from_secret(jwt_key.as_ref()),
+        &Validation::new(Algorithm::HS256),
+    )
+    .map_err(|_| ErrorForbidden("Validation failed"))?
+    .claims;
+
+    let result = web::block(move || {
+        let mut conn = db_pool
+            .get()
+            .expect("Failed to get a connection from the pool");
+        dsl::passwords
+            .filter(dsl::id.eq(id.to_owned()))
+            .filter(dsl::user_id.eq(user.id))
+            .first::<Password>(&mut conn)
+            .optional()
+    })
+    .await?;
+
+    if result.is_err() {
+        return Err(ErrorInternalServerError("Internal Server Error"));
+    }
+
+    let password = match result.unwrap() {
+        Some(password) => password,
+        None => return Err(ErrorNotFound("Not Found")),
+    };
+
+    let key_bytes = password.key;
+    let nonce_bytes = password.nonce;
+    let key = GenericArray::from_slice(&key_bytes);
+    let nonce = Nonce::from_slice(&nonce_bytes);
+    let value = password.value;
+
+    let cipher = Aes128Gcm::new(key);
+
+    let decoded = cipher.decrypt(nonce, value.as_ref()).unwrap();
+
+    let plain_text = String::from_utf8(decoded).unwrap();
+
+    Ok(HttpResponse::Ok().json(PasswordResponse {
+        id: password.id,
         name: password.name,
         value: plain_text,
         website: password.website,
@@ -350,6 +413,6 @@ pub async fn delete_password(
     if count == 0 {
         Err(ErrorNotFound("Password not exist"))
     } else {
-        Ok(HttpResponse::Ok().body("Deleted password"))
+        Ok(HttpResponse::Ok().json("Deleted password"))
     }
 }

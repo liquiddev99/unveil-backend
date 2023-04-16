@@ -21,6 +21,7 @@ pub struct ErrorResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PasswordResponse {
+    pub id: String,
     pub name: String,
     pub value: String,
     pub website: Option<String>,
