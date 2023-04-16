@@ -1,7 +1,7 @@
 use actix_web::{
     cookie::{time, Cookie, SameSite::Strict},
     delete,
-    error::{ErrorBadRequest, ErrorInternalServerError, ErrorNotFound},
+    error::{ErrorBadRequest, ErrorForbidden, ErrorInternalServerError, ErrorNotFound},
     get, post, put, web, Error, HttpRequest, HttpResponse,
 };
 use bcrypt::{hash, verify, DEFAULT_COST};
@@ -45,10 +45,7 @@ pub async fn signup(
     let email_form = &new_user_form.email;
     let email_regex = Regex::new(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,6}$").unwrap();
     if !email_regex.is_match(email_form) {
-        return Ok(HttpResponse::BadRequest().json(ErrorResponse {
-            code: ErrorCode::BadRequest,
-            msg: "Please input a valid email".to_string(),
-        }));
+        return Err(ErrorBadRequest("Please input a valid email"));
     }
 
     // Create hash password
@@ -93,10 +90,10 @@ pub async fn signup(
 
     if let Err(err) = result {
         match err.code {
-            ErrorCode::BadRequest => return Ok(HttpResponse::BadRequest().json(err)),
-            ErrorCode::Forbidden => return Ok(HttpResponse::Forbidden().json(err)),
-            ErrorCode::NotFound => return Ok(HttpResponse::NotFound().json(err)),
-            ErrorCode::InternalServer => return Ok(HttpResponse::InternalServerError().json(err)),
+            ErrorCode::BadRequest => return Err(ErrorBadRequest(err.msg)),
+            ErrorCode::Forbidden => return Err(ErrorForbidden(err.msg)),
+            ErrorCode::NotFound => return Err(ErrorNotFound(err.msg)),
+            ErrorCode::InternalServer => return Err(ErrorInternalServerError(err.msg)),
         }
     }
     let new_user = result.unwrap();

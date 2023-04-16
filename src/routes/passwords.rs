@@ -105,10 +105,10 @@ pub async fn create_password(
 
     if let Err(err) = result {
         match err.code {
-            ErrorCode::BadRequest => return Ok(HttpResponse::BadRequest().json(err)),
-            ErrorCode::NotFound => return Ok(HttpResponse::NotFound().json(err)),
-            ErrorCode::Forbidden => return Ok(HttpResponse::Forbidden().json(err)),
-            ErrorCode::InternalServer => return Ok(HttpResponse::InternalServerError().json(err)),
+            ErrorCode::BadRequest => return Err(ErrorBadRequest(err.msg)),
+            ErrorCode::Forbidden => return Err(ErrorForbidden(err.msg)),
+            ErrorCode::NotFound => return Err(ErrorNotFound(err.msg)),
+            ErrorCode::InternalServer => return Err(ErrorInternalServerError(err.msg)),
         }
     }
 
