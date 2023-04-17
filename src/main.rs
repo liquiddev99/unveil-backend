@@ -22,6 +22,10 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let port = env::var("PORT")
+        .expect("PORT must be set")
+        .parse::<u16>()
+        .expect("Can't get port");
 
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     let pool = r2d2::Pool::builder()
@@ -49,7 +53,7 @@ async fn main() -> std::io::Result<()> {
             .service(update_password)
             .service(delete_password)
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("127.0.0.1", port))?
     .run()
     .await
 }
