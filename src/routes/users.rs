@@ -117,6 +117,7 @@ pub async fn signup(
     .map_err(ErrorInternalServerError)?;
 
     let cookie = Cookie::build("user_session", token)
+        .secure(true)
         .http_only(true)
         .path("/")
         .same_site(actix_web::cookie::SameSite::None)
@@ -175,6 +176,7 @@ pub async fn login(
     .map_err(ErrorInternalServerError)?;
 
     let cookie = Cookie::build("user_session", token)
+        .secure(true)
         .http_only(true)
         .path("/")
         .same_site(actix_web::cookie::SameSite::None)
@@ -188,6 +190,7 @@ pub async fn login(
 #[post("/users/logout")]
 pub async fn logout() -> Result<HttpResponse, Error> {
     let cookie = Cookie::build("user_session", "")
+        .secure(true)
         .http_only(true)
         .path("/")
         .same_site(actix_web::cookie::SameSite::None)
