@@ -15,7 +15,7 @@ use routes::passwords::{
     create_password, delete_password, get_password_by_id, get_password_by_name,
     get_passwords_by_user_id, update_password,
 };
-use routes::users::{get_users, login, logout, signup};
+use routes::users::{get_users, login, logout, signup, update_user};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -43,6 +43,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             .app_data(web::Data::new(pool.clone()))
             .service(get_users)
+            .service(update_user)
             .service(signup)
             .service(login)
             .service(logout)

@@ -22,7 +22,7 @@ pub struct User {
 pub struct UserClaim {
     pub exp: i64,
     pub id: String,
-    pub name: String,
+    pub username: String,
     pub email: String,
 }
 
@@ -30,4 +30,10 @@ pub struct UserClaim {
 pub struct LoginUser {
     pub email: String,
     pub password: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateUserForm {
+    pub username: String,
+    pub email: String,
 }

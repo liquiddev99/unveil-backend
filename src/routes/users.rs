@@ -15,8 +15,8 @@ use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, 
 use regex::Regex;
 use std::env;
 
-use crate::db::schema::users::dsl::*;
-use crate::db::user::{LoginUser, NewUser, User, UserClaim};
+use crate::db::schema::users::dsl;
+use crate::db::user::{LoginUser, NewUser, UpdateUserForm, User, UserClaim};
 use crate::types::response::{ErrorCode, ErrorResponse, TokenResponse};
 
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
@@ -27,7 +27,7 @@ pub async fn get_users(db_pool: web::Data<DbPool>) -> Result<HttpResponse, Error
         let mut conn = db_pool
             .get()
             .expect("Failed to get a connection from the pool");
-        users.load::<User>(&mut conn)
+        dsl::users.load::<User>(&mut conn)
     })
     .await?
     .map_err(ErrorInternalServerError)?;
@@ -62,7 +62,7 @@ pub async fn signup(
             .expect("Failed to get a connection from the pool");
 
         // Insert new user
-        let result = diesel::insert_into(users)
+        let result = diesel::insert_into(dsl::users)
             .values(hashed_user)
             .get_result::<User>(&mut conn);
 
@@ -103,7 +103,7 @@ pub async fn signup(
     let user_claim = UserClaim {
         exp: expiration.timestamp(),
         id: new_user.id,
-        name: new_user.username,
+        username: new_user.username,
         email: new_user.email,
     };
     dotenv().ok();
@@ -138,8 +138,8 @@ pub async fn login(
         let mut conn = db_pool
             .get()
             .expect("Failed to get a connection from the pool");
-        users
-            .filter(email.eq(credentials.email.to_owned()))
+        dsl::users
+            .filter(dsl::email.eq(credentials.email.to_owned()))
             .first::<User>(&mut conn)
             .optional()
     })
@@ -162,8 +162,91 @@ pub async fn login(
     let user_claim = UserClaim {
         exp: expiration.timestamp(),
         id: user.id,
-        name: user.username,
+        username: user.username,
         email: user.email,
+    };
+    dotenv().ok();
+    let jwt_key = env::var("JWT_SECRET").map_err(ErrorInternalServerError)?;
+
+    let token = encode(
+        &Header::default(),
+        &user_claim,
+        &EncodingKey::from_secret(jwt_key.as_ref()),
+    )
+    .map_err(ErrorInternalServerError)?;
+
+    let cookie = Cookie::build("user_session", token)
+        .secure(true)
+        .http_only(true)
+        .domain("unveil.work")
+        .path("/")
+        .same_site(Strict)
+        .max_age(time::Duration::days(1))
+        .finish();
+
+    Ok(HttpResponse::Ok().cookie(cookie).finish())
+}
+
+#[allow(clippy::collapsible_match)]
+#[put("/users/update/{id}")]
+pub async fn update_user(
+    req: HttpRequest,
+    db_pool: web::Data<DbPool>,
+    id: web::Path<String>,
+    user_form: web::Json<UpdateUserForm>,
+) -> Result<HttpResponse, Error> {
+    let user_session = req
+        .cookie("user_session")
+        .ok_or_else(|| ErrorBadRequest("User not logged in"))?;
+    dotenv().ok();
+
+    let jwt_key = env::var("JWT_SECRET")
+        .map_err(|_| ErrorInternalServerError("Internal Server Error"))
+        .unwrap();
+    let user = decode::<UserClaim>(
+        user_session.value(),
+        &DecodingKey::from_secret(jwt_key.as_ref()),
+        &Validation::new(Algorithm::HS256),
+    )
+    .map_err(|_| ErrorForbidden("Validation failed"))?
+    .claims;
+
+    if user.id != id.to_string() {
+        return Err(ErrorForbidden("Can't update another user"));
+    }
+
+    let result = web::block(move || {
+        let mut conn = db_pool
+            .get()
+            .expect("Failed to get a connection from the pool");
+
+        diesel::update(dsl::users.filter(dsl::id.eq(id.to_owned())))
+            .set((
+                dsl::username.eq(user_form.username.to_owned()),
+                dsl::email.eq(user_form.email.to_owned()),
+            ))
+            .get_result::<User>(&mut conn)
+    })
+    .await?;
+
+    // Error handling
+    if let Err(error) = result {
+        if let DbError::DatabaseError(kind, _) = error {
+            if let DatabaseErrorKind::UniqueViolation = kind {
+                return Err(ErrorBadRequest("That email already exists"));
+            }
+        }
+        return Err(ErrorInternalServerError("Internal Server Error"));
+    }
+
+    let new_user = result.unwrap();
+
+    let expiration = chrono::Utc::now() + chrono::Duration::hours(6);
+    let user_claim = UserClaim {
+        exp: expiration.timestamp(),
+        id: new_user.id,
+        username: new_user.username,
+        email: new_user.email,
     };
     dotenv().ok();
     let jwt_key = env::var("JWT_SECRET").map_err(ErrorInternalServerError)?;
