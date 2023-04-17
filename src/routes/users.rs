@@ -120,7 +120,7 @@ pub async fn signup(
         .http_only(true)
         .path("/")
         .same_site(actix_web::cookie::SameSite::None)
-        .domain(".unveil.work")
+        .domain("unveil.work")
         .max_age(time::Duration::days(1))
         .finish();
 
@@ -178,7 +178,7 @@ pub async fn login(
         .http_only(true)
         .path("/")
         .same_site(actix_web::cookie::SameSite::None)
-        .domain(".unveil.work")
+        .domain("unveil.work")
         .max_age(time::Duration::days(1))
         .finish();
 
@@ -191,7 +191,7 @@ pub async fn logout() -> Result<HttpResponse, Error> {
         .http_only(true)
         .path("/")
         .same_site(actix_web::cookie::SameSite::None)
-        .domain(".unveil.work")
+        .domain("unveil.work")
         .max_age(time::Duration::milliseconds(0))
         .expires(time::OffsetDateTime::now_utc())
         .finish();
