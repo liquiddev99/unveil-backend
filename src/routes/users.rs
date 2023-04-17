@@ -99,7 +99,7 @@ pub async fn signup(
     let new_user = result.unwrap();
 
     // Create JWT token
-    let expiration = chrono::Utc::now() + chrono::Duration::hours(6);
+    let expiration = chrono::Utc::now() + chrono::Duration::days(6);
     let user_claim = UserClaim {
         exp: expiration.timestamp(),
         id: new_user.id,
@@ -122,7 +122,7 @@ pub async fn signup(
         .domain(".unveil.work")
         .path("/")
         .same_site(Strict)
-        .max_age(time::Duration::days(1))
+        .max_age(time::Duration::days(6))
         .finish();
 
     Ok(HttpResponse::Ok().cookie(cookie).finish())
@@ -158,7 +158,7 @@ pub async fn login(
         return Err(ErrorBadRequest("Invalid Credentials"));
     }
 
-    let expiration = chrono::Utc::now() + chrono::Duration::hours(6);
+    let expiration = chrono::Utc::now() + chrono::Duration::days(6);
     let user_claim = UserClaim {
         exp: expiration.timestamp(),
         id: user.id,
@@ -181,7 +181,7 @@ pub async fn login(
         .domain(".unveil.work")
         .path("/")
         .same_site(Strict)
-        .max_age(time::Duration::days(1))
+        .max_age(time::Duration::days(6))
         .finish();
 
     Ok(HttpResponse::Ok().cookie(cookie).finish())
@@ -241,7 +241,7 @@ pub async fn update_user(
 
     let new_user = result.unwrap();
 
-    let expiration = chrono::Utc::now() + chrono::Duration::hours(6);
+    let expiration = chrono::Utc::now() + chrono::Duration::days(6);
     let user_claim = UserClaim {
         exp: expiration.timestamp(),
         id: new_user.id,
@@ -264,7 +264,7 @@ pub async fn update_user(
         .domain(".unveil.work")
         .path("/")
         .same_site(Strict)
-        .max_age(time::Duration::days(1))
+        .max_age(time::Duration::days(6))
         .finish();
 
     Ok(HttpResponse::Ok().cookie(cookie).finish())
