@@ -128,13 +128,18 @@ pub async fn get_passwords_by_user_id(
     dotenv().ok();
 
     let jwt_key = env::var("JWT_SECRET").expect("JWT must be set");
-    let user = decode::<UserClaim>(
+    let result = decode::<UserClaim>(
         user_session.value(),
         &DecodingKey::from_secret(jwt_key.as_ref()),
         &Validation::new(Algorithm::HS256),
-    )
-    .map_err(|_| ErrorForbidden("Validation failed"))?
-    .claims;
+    );
+
+    if let Err(error) = result {
+        println!("{:?}", error);
+        return Err(ErrorForbidden("validation failed"));
+    }
+
+    let user = result.unwrap().claims;
 
     let result = web::block(move || {
         let mut conn = db_pool
