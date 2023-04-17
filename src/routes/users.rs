@@ -119,7 +119,7 @@ pub async fn signup(
     let cookie = Cookie::build("user_session", token)
         .http_only(true)
         .path("/")
-        .same_site(Lax)
+        .same_site(actix_web::cookie::SameSite::None)
         .domain(".unveil.work")
         .max_age(time::Duration::days(1))
         .finish();
@@ -177,7 +177,7 @@ pub async fn login(
     let cookie = Cookie::build("user_session", token)
         .http_only(true)
         .path("/")
-        .same_site(Lax)
+        .same_site(actix_web::cookie::SameSite::None)
         .domain(".unveil.work")
         .max_age(time::Duration::days(1))
         .finish();
@@ -190,7 +190,7 @@ pub async fn logout() -> Result<HttpResponse, Error> {
     let cookie = Cookie::build("user_session", "")
         .http_only(true)
         .path("/")
-        .same_site(Lax)
+        .same_site(actix_web::cookie::SameSite::None)
         .domain(".unveil.work")
         .max_age(time::Duration::milliseconds(0))
         .expires(time::OffsetDateTime::now_utc())
