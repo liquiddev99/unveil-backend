@@ -1,5 +1,5 @@
 use actix_web::{
-    cookie::{time, Cookie, SameSite::Strict},
+    cookie::{time, Cookie, SameSite::Lax},
     delete,
     error::{ErrorBadRequest, ErrorForbidden, ErrorInternalServerError, ErrorNotFound},
     get, post, put, web, Error, HttpRequest, HttpResponse,
@@ -120,7 +120,7 @@ pub async fn signup(
         .secure(true)
         .http_only(true)
         .path("/")
-        .same_site(Strict)
+        .same_site(Lax)
         .max_age(time::Duration::days(1))
         .finish();
 
@@ -178,7 +178,7 @@ pub async fn login(
         .secure(true)
         .http_only(true)
         .path("/")
-        .same_site(Strict)
+        .same_site(Lax)
         .max_age(time::Duration::days(1))
         .finish();
 
@@ -191,7 +191,7 @@ pub async fn logout() -> Result<HttpResponse, Error> {
         .secure(true)
         .http_only(true)
         .path("/")
-        .same_site(Strict)
+        .same_site(Lax)
         .max_age(time::Duration::milliseconds(0))
         .expires(time::OffsetDateTime::now_utc())
         .finish();
