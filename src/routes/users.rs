@@ -103,7 +103,7 @@ pub async fn signup(
     let user_claim = UserClaim {
         exp: expiration.timestamp(),
         id: new_user.id,
-        username: new_user.username,
+        name: new_user.username,
         email: new_user.email,
     };
     dotenv().ok();
@@ -162,7 +162,7 @@ pub async fn login(
     let user_claim = UserClaim {
         exp: expiration.timestamp(),
         id: user.id,
-        username: user.username,
+        name: user.username,
         email: user.email,
     };
     dotenv().ok();
@@ -222,7 +222,7 @@ pub async fn update_user(
 
         diesel::update(dsl::users.filter(dsl::id.eq(id.to_owned())))
             .set((
-                dsl::username.eq(user_form.username.to_owned()),
+                dsl::username.eq(user_form.name.to_owned()),
                 dsl::email.eq(user_form.email.to_owned()),
             ))
             .get_result::<User>(&mut conn)
@@ -245,7 +245,7 @@ pub async fn update_user(
     let user_claim = UserClaim {
         exp: expiration.timestamp(),
         id: new_user.id,
-        username: new_user.username,
+        name: new_user.username,
         email: new_user.email,
     };
     dotenv().ok();
